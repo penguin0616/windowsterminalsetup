@@ -1,3 +1,4 @@
+# Sourced from https://github.com/lextm/windowsterminal-shell
 function GetProgramFilesFolder(
 	[Parameter(Mandatory = $true)]
 	[bool]$includePreview) {
@@ -39,6 +40,7 @@ function GetProgramFilesFolder(
 	return $result
 }
 
+# Sourced from https://github.com/lextm/windowsterminal-shell
 function GetActiveProfiles(
 	[Parameter(Mandatory = $true)]
 	[bool]$isPreview
@@ -67,7 +69,7 @@ function GetActiveProfiles(
 }
 
 
-# https://github.com/Duffney/PowerShell/blob/master/FileSystems/Get-Icon.ps1
+# Sourced from https://github.com/Duffney/PowerShell/blob/master/FileSystems/Get-Icon.ps1
 Function Get-Icon {
 	[CmdletBinding()]
 	
@@ -86,7 +88,7 @@ Function Get-Icon {
 }
 
 
-
+# Sourced from https://github.com/lextm/windowsterminal-shell
 function GetWindowsTerminalIcon(
 	[Parameter(Mandatory = $true)]
 	[string]$folder,
@@ -110,6 +112,7 @@ function GetWindowsTerminalIcon(
 	return $icon
 }
 
+# Sourced from https://github.com/lextm/windowsterminal-shell
 function ResolveProfileIconToFilepath (
 	[Parameter(Mandatory = $true)]
 	[string]$profileIcon,
