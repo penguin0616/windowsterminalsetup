@@ -37,7 +37,29 @@ function CreateContextMenuItem(
 
 	# Create the command for the menu entry
 	New-Item -Path "$path\command" | Out-Null
-	New-ItemProperty -Path "$path\command" -Name '(Default)' -PropertyType String -Value $command | Out-Null
+	if ($elevated) {
+		#$horse = "Start-Process $executable -Verb RunAs"
+		#Write-Host $horse
+		#$b64 = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($horse))
+		#Write-Host $b64
+
+		#New-ItemProperty -Path "$path\command" -Name '(Default)' -PropertyType String -Value "powershell -WindowStyle Hidden -NonInteractive -EncodedCommand $b64" | Out-Null
+
+		# The %V. is the path passed in by the context
+		$horse = "wscript.exe ""$localCache/wthelper.vbs"" ""$command"" ""%V."""
+		New-ItemProperty -Path "$path\command" -Name '(Default)' -PropertyType String -Value $horse | Out-Null
+
+		# $command = """$executable"" -d ""%V."""
+
+		#$adjusted = "Start-Process $executable -ArgumentList `"-d ""%V.""`" -Verb RunAs"
+		#$adjusted = "Write-Host `"-startingDirectory ""%V.""`""
+		#$b64 = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($adjusted))
+
+		#$horse = "wscript.exe ""$localCache/wthelper.vbs"" ""asd"" ""%V"" "
+		#New-ItemProperty -Path "$path\command" -Name '(Default)' -PropertyType String -Value $horse | Out-Null
+	} else {
+		New-ItemProperty -Path "$path\command" -Name '(Default)' -PropertyType String -Value $command | Out-Null
+	}
 }
 
 function CreateContextMenuGroup(
@@ -92,8 +114,8 @@ function PopulateContextMenuGroup(
 		#Write-Host "     $profileKey"
 
 		$cmd = """$executable"" -p ""$profileName"" -d ""%V."""
-		#$profileIcon = GetProfileIcon $profile $terminalFolder $localCache $windowsTerminalIcon $isPreview
-		$profileIcon = GetProfileIcon $profile $terminalFolder $localCache $null $isPreview
+		#$profileIcon = GetProfileIcon $profile $terminalInstallationFolder $localCache $windowsTerminalIcon $isPreview
+		$profileIcon = GetProfileIcon $profile $terminalInstallationFolder $localCache $null $isPreview
 
 		New-Item -Path $profileKey -Force | Out-Null
 		New-ItemProperty -Path $profileKey -Name 'MUIVerb' -PropertyType String -Value $profile.name -Force | Out-Null
@@ -109,6 +131,7 @@ function PopulateContextMenuGroup(
 
 $isPreview = $false
 $includePreview = $false
+
 $standardKey = "WindowsTerminalStuff"
 $extendedKey = "WindowsTerminalStuffAdvanced"
 
@@ -120,8 +143,8 @@ if (-not (Test-Path $executable)) {
 	exit 1
 }
 
-$terminalFolder = GetProgramFilesFolder $includePreview
-Write-Host "Terminal folder: $terminalFolder"
+$terminalInstallationFolder = GetProgramFilesFolder $includePreview
+Write-Host "Terminal folder: $terminalInstallationFolder"
 
 $localCache = "$Env:LOCALAPPDATA\Microsoft\WindowsApps\Cache"
 
@@ -129,20 +152,24 @@ if (-not (Test-Path $localCache)) {
 	New-Item $localCache -ItemType Directory | Out-Null
 }
 
+#if (-not (Test-Path "$localCache/wthelper.vbs")) {
+Copy-Item "./wthelper.vbs" -Destination "$localCache/wthelper.vbs"
+#}
 
 ./uninstall.ps1
 Write-Host "Beginning installation"
 
-$windowsTerminalIcon = GetWindowsTerminalIcon $terminalFolder $localCache
+$windowsTerminalIcon = GetWindowsTerminalIcon $terminalInstallationFolder $localCache
 
 ############################################################
 # Create the normal version.
 ############################################################
-Write-Host "Creating context menu item for shell (folder)"
 
 $command = """$executable"" -d ""%V."""
 
+##############################
 # Right click directory
+Write-Host "Creating context menu item for shell (folder)"
 $shellPath = "Registry::HKEY_CURRENT_USER\SOFTWARE\Classes\Directory\shell\$standardKey"
 CreateContextMenuItem `
 	-path $shellPath `
@@ -152,6 +179,16 @@ CreateContextMenuItem `
 	-extended $false `
 	-elevated $false
 
+$adminShellPath = "Registry::HKEY_CURRENT_USER\SOFTWARE\Classes\Directory\shell\$($standardKey)Admin"
+CreateContextMenuItem `
+	-path $adminShellPath `
+	-verb "Terminal here as Administrator" `
+	-icon $windowsTerminalIcon `
+	-command $executable `
+	-extended $false `
+	-elevated $true
+
+##############################
 # Right click directory background
 Write-Host "Creating context menu item for directory"
 $backgroundPath = "Registry::HKEY_CURRENT_USER\SOFTWARE\Classes\Directory\Background\shell\$standardKey"
@@ -162,6 +199,15 @@ CreateContextMenuItem `
 	-command $command `
 	-extended $false `
 	-elevated $false 
+
+$backgroundPathAdmin = "Registry::HKEY_CURRENT_USER\SOFTWARE\Classes\Directory\Background\shell\$($standardKey)Admin"
+CreateContextMenuItem `
+	-path $backgroundPathAdmin `
+	-verb "Terminal here as Administrator" `
+	-icon $windowsTerminalIcon `
+	-command $executable `
+	-extended $false `
+	-elevated $true
 
 ############################################################
 # Create the extended version.
